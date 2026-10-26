@@ -1,5 +1,6 @@
 # UI and interaction parity
 
+> **Last reviewed:** 2026-10-26 · **Last updated:** 2026-10-26 · **Change:** minor (page-view rulers with units, a cursor mark and session guides; command count recounted) · **Target:** Adobe Acrobat Pro (Acrobat DC, continuous track 26.002.21931, macOS)
 > **Last reviewed:** 2026-10-21 · **Last updated:** 2026-10-21 · **Change:** minor (Pages inspector thumbnail size slider and buttons #3808; full screen presents one page at a time #1459; the selected field nudges with the arrow keys in Prepare a form #2608) · **Target:** Adobe Acrobat Pro (Acrobat DC, continuous track 26.002.21931, macOS)
 
 How PdfCraft's tools, panels, shortcuts and feel compare with Acrobat Pro's current interface (the
@@ -11,12 +12,12 @@ interface is copied. Gaps ranked in [gaps.md](gaps.md).
 
 ## Measured
 
-- **184 registered commands** (`crates/engine/src/commands.rs`), every one in the menus, the
+- **206 registered commands** (`crates/engine/src/commands.rs`), every one in the menus, the
   command palette and the automation `command_run` tool; menus are generated from the registry
   (`view.menus-from-registry`).
 - **141 automation tools** (`crates/automation/src/tools.rs`), so every UI action can be checked
   headlessly.
-- **View area of the checklist: 62.5% breadth** (52 shipped, 11 partial of 92).
+- **View area of the checklist: 66.3% breadth** (55 shipped, 16 partial of 95; recounted from the checklist).
 
 No dump of Acrobat's menu tree has been diffed against the registry yet (gap 24).
 
@@ -49,8 +50,8 @@ No dump of Acrobat's menu tree has been diffed against the registry yet (gap 24)
 | Select and move several objects at once | yes | on one page: Shift/Ctrl/⌘-click and marquee, one undo step (#844); not across pages, no group resize | partial |
 | Object handles: corners keep proportion, edges free | yes | yes for added images and signatures; Shift on a corner keeps the proportions of comments, stamps and form fields (#2199); no Alt resize from the centre | shipped |
 | Arrange, align and distribute page objects | yes | fields only | partial |
-| Rulers, grids, snap to grid, guides | yes | no | planned |
-| Cursor coordinates, line weights | yes | no | planned |
+| Rulers, grids, snap to grid, guides | yes | rulers (inches, millimetres, points, picas) and session guides dragged from them; no grid or snap | partial |
+| Cursor coordinates, line weights | yes | ruler hairline and readout while rulers are on; no floating coordinates window; line weights no | partial |
 | Measuring snap to paths, endpoints, midpoints, intersections | yes | yes | shipped |
 | Nudge selected objects with arrow keys (Shift for larger steps) | yes | yes in Edit text: a point, Shift ten points, for selected objects, images and an open paragraph's box (#1520); and in Prepare a form, for the selected field (#2608); a selected comment: a screen pixel, ⌘/Ctrl or Shift ten | shipped |
 | Single-key tool accelerators (H, V, Z, …) | yes, opt-in | no | planned |

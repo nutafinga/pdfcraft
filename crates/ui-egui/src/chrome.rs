@@ -606,6 +606,22 @@ fn main_menu(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                             app.execute(id);
                         }
                         ui.separator();
+                        let shortcut = crate::commands::command_shortcut_label(ui.ctx(), "view.rulers");
+                        ui.horizontal(|ui| {
+                            let mut on = app.show_rulers;
+                            if ui.add(widgets::checkbox(&mut on, tl!("Rulers"))).changed() {
+                                app.show_rulers = on;
+                            }
+                            ui.label(egui::RichText::new(shortcut).color(t.text_faint).small());
+                        });
+                        ui.menu_button(tl!("Ruler units"), |ui| {
+                            for unit in crate::rulers::RulerUnit::ALL {
+                                if ui.add(widgets::radio(app.ruler_unit == unit, tl!(unit.long_name()))).clicked() {
+                                    app.ruler_unit = unit;
+                                    ui.close();
+                                }
+                            }
+                        });
                     }
                     crate::commands::registry_menu(app, ui, "View");
                     ui.menu_button(tl!("Display theme"), |ui| theme_menu(app, ui));

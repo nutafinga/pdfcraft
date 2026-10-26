@@ -1440,6 +1440,7 @@ impl Host for crate::PdfCraftApp {
                 "pages_on_screen": v.visible_page_rects().iter().map(|(p, r)| json!({ "page": p + 1, "rect": [r.min.x, r.min.y, r.max.x, r.max.y] })).collect::<Vec<_>>(),
                 "selected_comment": v.comments.selected.map(|(p, i)| json!({ "page": p + 1, "index": i + 1 })),
                 "comment_composer_open": v.comments.composer.is_some(),
+                "guides": v.guides.len(),
             })),
             // The Combine files tab: how its files show, and each grid thumbnail's state.
             "combine": {
@@ -1489,6 +1490,8 @@ impl Host for crate::PdfCraftApp {
             "progress": self.progress_notice.as_ref().map(|p| json!({ "label": p.label, "fraction": p.fraction })),
             "password_prompt": self.password_prompt.is_some(),
             "close_prompt": self.close_request.is_some(),
+            "rulers": self.show_rulers,
+            "ruler_unit": self.ruler_unit.as_str(),
         })
     }
 

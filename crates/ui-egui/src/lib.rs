@@ -113,6 +113,7 @@ mod panels;
 mod pickers;
 pub mod prepare;
 mod print_ui;
+mod rulers;
 mod signature_drag;
 pub mod units;
 mod web_print;
@@ -736,6 +737,10 @@ pub struct PdfCraftApp {
     /// Preferences: tell the user, above the pages, that a document is secured (its security
     /// settings restrict changes). Off only hides that notice (#4035); kept in the settings.
     pub show_secured_notice: bool,
+    /// Page-view rulers. Off until turned on; the choice is kept across sessions.
+    pub show_rulers: bool,
+    /// The unit those rulers measure in (independent of [`Self::units`]).
+    pub(crate) ruler_unit: rulers::RulerUnit,
     /// Preferences: open every document at Default zoom and Default page display, whatever
     /// layout or zoom it asks for (#1618).
     pub always_default_view: bool,
@@ -1154,6 +1159,8 @@ impl PdfCraftApp {
             quit_session: None,
             reload_changed_files: true,
             show_secured_notice: true,
+            show_rulers: false,
+            ruler_unit: rulers::RulerUnit::Inches,
             always_default_view: false,
             #[cfg(not(target_arch = "wasm32"))]
             watch: Default::default(),
@@ -1370,11 +1377,8 @@ impl PdfCraftApp {
         let info = self.session.get(view.id).map(|d| &d.info);
         match info.and_then(|i| i.open_dest.filter(|(page, _)| *page < pages).map(|d| (i, d))) {
             Some((info, (page, dest))) if !self.always_default_view => view.go_to_dest(page, dest, info),
-            Some((_, (page, _))) => {
-                if page > 0 {
-                    view.go_to_page(page);
-                }
-            }
+            Some((_, (page, _))) if page > 0 => view.go_to_page(page),
+            Some(_) => {}
             None if v.page > 0 && v.page < pages => view.go_to_page(v.page),
             None => {}
         }
@@ -2685,6 +2689,8 @@ impl PdfCraftApp {
         v["hide_empty_highlight_hover"] = serde_json::Value::Bool(self.comment_prefs.hide_empty_highlight_hover);
         v["comment_tool_pinned"] = serde_json::Value::Bool(self.comment_prefs.pinned);
         v["show_secured_notice"] = serde_json::Value::Bool(self.show_secured_notice);
+        v["show_rulers"] = serde_json::Value::Bool(self.show_rulers);
+        v["ruler_unit"] = serde_json::Value::String(self.ruler_unit.as_str().to_string());
         v["organize_zoom"] = serde_json::json!(self.organize_zoom);
         // Canonical names survive changes to the order of PAPERS and do not depend on UI language.
         v["print_paper"] = serde_json::json!(pdfcraft_engine::print::PAPERS.get(self.print_draft.paper).map(|(name, _)| *name));
@@ -2735,6 +2741,12 @@ impl PdfCraftApp {
         }
         if let Some(on) = v["show_secured_notice"].as_bool() {
             self.show_secured_notice = on;
+        }
+        if let Some(on) = v["show_rulers"].as_bool() {
+            self.show_rulers = on;
+        }
+        if let Some(unit) = v["ruler_unit"].as_str().and_then(rulers::RulerUnit::parse) {
+            self.ruler_unit = unit;
         }
         self.pinned.restore(&v["pinned_folders"]);
         if let Ok(preference) = serde_json::from_value::<ThemePreference>(v["theme"].clone()) {
@@ -3198,6 +3210,17 @@ impl PdfCraftApp {
                     "false" => false,
                     _ => return Err("secured-notice must be true or false".into()),
                 };
+            }
+            // `--rulers on`: the page-view rulers. No document is required.
+            ("rulers", _) => {
+                self.show_rulers = match value {
+                    "on" | "true" => true,
+                    "off" | "false" => false,
+                    _ => return Err("rulers must be on or off".into()),
+                };
+            }
+            ("ruler-unit", _) => {
+                self.ruler_unit = rulers::RulerUnit::parse(value).ok_or("ruler-unit must be inches, millimetres, points or picas")?;
             }
             ("system-title-bar", _) => {
                 self.system_title_bar = match value {
