@@ -101,6 +101,7 @@ pub mod forms_ui;
 mod home;
 mod icon_data;
 pub mod icons;
+mod impose_ui;
 pub mod last_session;
 pub mod last_view;
 pub mod motion;
@@ -323,6 +324,8 @@ pub enum Dialog {
     RedactApply,
     /// File ▸ Print.
     Print,
+    /// File ▸ Impose. Writes a new PDF; the open document is not modified.
+    Impose,
     /// File ▸ Revert confirmation.
     Revert,
     /// Save over a file that changed on disk since the document came from it (#2166).
@@ -991,6 +994,8 @@ pub struct PdfCraftApp {
     pub redact_search: RedactSearchDraft,
     pub hidden_draft: HiddenDraft,
     pub print_draft: PrintDraft,
+    /// File ▸ Impose. The job and the user's presets are kept across sessions.
+    pub(crate) impose: impose_ui::ImposeDraft,
     pub link_draft: Option<LinkDraft>,
     /// The style new text gets (Edit a PDF ▸ Format text).
     pub text_style: pdfcraft_engine::AddedText,
@@ -1308,6 +1313,7 @@ impl PdfCraftApp {
             redact_search: RedactSearchDraft::default(),
             hidden_draft: HiddenDraft::default(),
             print_draft: PrintDraft::default(),
+            impose: impose_ui::ImposeDraft::default(),
             link_draft: None,
             text_style: content_ui::default_style(),
             replace_draft: None,
@@ -2691,6 +2697,8 @@ impl PdfCraftApp {
         v["show_secured_notice"] = serde_json::Value::Bool(self.show_secured_notice);
         v["show_rulers"] = serde_json::Value::Bool(self.show_rulers);
         v["ruler_unit"] = serde_json::Value::String(self.ruler_unit.as_str().to_string());
+        v["impose_job"] = impose_ui::persist_job(&self.impose.job);
+        v["impose_presets"] = impose_ui::persist_presets(&self.impose.user_presets);
         v["organize_zoom"] = serde_json::json!(self.organize_zoom);
         // Canonical names survive changes to the order of PAPERS and do not depend on UI language.
         v["print_paper"] = serde_json::json!(pdfcraft_engine::print::PAPERS.get(self.print_draft.paper).map(|(name, _)| *name));
@@ -2747,6 +2755,13 @@ impl PdfCraftApp {
         }
         if let Some(unit) = v["ruler_unit"].as_str().and_then(rulers::RulerUnit::parse) {
             self.ruler_unit = unit;
+        }
+        if let Some(job) = impose_ui::restore_job(&v["impose_job"]) {
+            self.impose.job = job;
+        }
+        let presets = impose_ui::restore_presets(&v["impose_presets"]);
+        if !presets.is_empty() {
+            self.impose.user_presets = presets;
         }
         self.pinned.restore(&v["pinned_folders"]);
         if let Ok(preference) = serde_json::from_value::<ThemePreference>(v["theme"].clone()) {
@@ -2963,6 +2978,12 @@ impl PdfCraftApp {
                 // other tab comes forward to put it away.
                 self.all_tools_full = false;
             }
+            ("impose-preset", _) => {
+                let job = pdfcraft_engine::prepress::preset(value).ok_or_else(|| format!("unknown imposition preset {value}"))?;
+                self.impose.job = job;
+                self.impose.preset_name = value.to_string();
+                self.impose.reset_preview();
+            }
             ("dialog", _) => {
                 self.dialog = match value {
                     "properties" => Some(Dialog::Properties(PropsTab::Description)),
@@ -2987,6 +3008,10 @@ impl PdfCraftApp {
                     "js-console" => Some(Dialog::JsConsole),
                     "document-js" => Some(Dialog::DocumentJs),
                     "preferences" => Some(Dialog::Preferences),
+                    "impose" => {
+                        self.open_impose();
+                        Some(Dialog::Impose)
+                    }
                     "compare-files" => Some(Dialog::CompareFiles),
                     "action-wizard" => Some(Dialog::ActionWizard),
                     "pdfa" => Some(Dialog::PdfA),

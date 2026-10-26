@@ -104,6 +104,7 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
         ui.set_width(match dialog {
             Dialog::Properties(_) => 640.0,
             Dialog::Print => 820.0,
+            Dialog::Impose => 980.0,
             Dialog::FieldProps | Dialog::BulkFieldProps => 600.0,
             Dialog::About => 780.0,
             _ => 520.0,
@@ -995,6 +996,18 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
                         close = true;
                     }
                 });
+                return;
+            }
+            Dialog::Impose => {
+                let Some((_, _)) = app.active_ids() else {
+                    close = true;
+                    return;
+                };
+                let (go, cancel) = crate::impose_ui::body(ui, app);
+                if go && !app.impose_now() {
+                    return;
+                }
+                close = go || cancel;
                 return;
             }
             Dialog::Print => {

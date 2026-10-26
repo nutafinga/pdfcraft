@@ -156,6 +156,7 @@ pub use pdfcraft_annot::{
 pub use pdfcraft_forms::detect;
 pub use pdfcraft_optimize as optimize;
 pub use pdfcraft_preflight as pdfa;
+pub use pdfcraft_prepress as prepress;
 pub use pdfcraft_print as print;
 pub use pdfcraft_redact::codes::{CODE_SETS as REDACTION_CODE_SETS, CodeSet as RedactionCodeSet};
 pub use pdfcraft_redact::patterns::{
@@ -4827,6 +4828,42 @@ impl Session {
             set_default_layer_state(&mut cos, &doc.info.layers);
         }
         pdfcraft_print::impose(&cos, settings).map_err(|e| EditError::Print(e.to_string()))
+    }
+
+    /// A new imposed PDF for `job`. The open document is not modified.
+    ///
+    /// `filename` and today's date (empty in the web build, which has no clock) are the slug.
+    /// `pages` are 0-based. The result is `(bytes, sheet count)`; fronts and backs each count.
+    pub fn impose_pdf(&self, id: DocId, pages: &[usize], job: &prepress::Job, filename: &str) -> Result<(Vec<u8>, usize), EditError> {
+        let doc = self.get(id).ok_or(EditError::NoDocument)?;
+        if !doc.allows_printing() {
+            return Err(EditError::NotPermitted("printing"));
+        }
+        let mut cos = match doc.editor.as_ref() {
+            Some(e) => e.cos.clone(),
+            None => {
+                pdfcraft_cos::Document::open_with_password(doc.bytes.clone(), doc.password.as_deref()).map_err(|e| EditError::Write(e.to_string()))?
+            }
+        };
+        if !doc.config.layers.is_empty() {
+            set_default_layer_state(&mut cos, &doc.info.layers);
+        }
+        // The web build has no clock (chrono's clock feature is native-only). An empty date
+        // leaves the slug as the filename and the sheet number, rather than 1970-01-01.
+        let date = {
+            #[cfg(target_arch = "wasm32")]
+            {
+                String::new()
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let (y, m, d) = self.today();
+                format!("{y:04}-{m:02}-{d:02}")
+            }
+        };
+        let slug = prepress::Slug { filename: filename.to_string(), date };
+        let imposed = pdfcraft_prepress::impose(&cos, pages, job, &slug).map_err(|e| EditError::Print(e.to_string()))?;
+        Ok((imposed.bytes, imposed.sheets))
     }
 
     /// For each page, whether its text mostly runs bottom-to-top ([`pdfcraft_print::text_reads_up`]);

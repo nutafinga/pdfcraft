@@ -22,6 +22,7 @@ pdfcraft-edit = { workspace = true }
 pdfcraft-audit = { workspace = true }
 pdfcraft-redact = { workspace = true }
 pdfcraft-print = { workspace = true }
+pdfcraft-prepress = { workspace = true }
 pdfcraft-xfdf = { workspace = true }
 pdfcraft-sign = { workspace = true }
 pdfcraft-optimize = { workspace = true }

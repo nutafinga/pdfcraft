@@ -1,5 +1,6 @@
 # UI and interaction parity
 
+> **Last reviewed:** 2026-10-26 · **Last updated:** 2026-10-26 · **Change:** minor (File ▸ Impose writes a new press-sheet PDF; command count 207, 142 automation tools) · **Target:** Adobe Acrobat Pro (Acrobat DC, continuous track 26.002.21931, macOS)
 > **Last reviewed:** 2026-10-26 · **Last updated:** 2026-10-26 · **Change:** minor (page-view rulers with units, a cursor mark and session guides; command count recounted) · **Target:** Adobe Acrobat Pro (Acrobat DC, continuous track 26.002.21931, macOS)
 > **Last reviewed:** 2026-10-21 · **Last updated:** 2026-10-21 · **Change:** minor (Pages inspector thumbnail size slider and buttons #3808; full screen presents one page at a time #1459; the selected field nudges with the arrow keys in Prepare a form #2608) · **Target:** Adobe Acrobat Pro (Acrobat DC, continuous track 26.002.21931, macOS)
 
@@ -12,10 +13,10 @@ interface is copied. Gaps ranked in [gaps.md](gaps.md).
 
 ## Measured
 
-- **206 registered commands** (`crates/engine/src/commands.rs`), every one in the menus, the
+- **207 registered commands** (`crates/engine/src/commands.rs`), every one in the menus, the
   command palette and the automation `command_run` tool; menus are generated from the registry
   (`view.menus-from-registry`).
-- **141 automation tools** (`crates/automation/src/tools.rs`), so every UI action can be checked
+- **142 automation tools** (`crates/automation/src/tools.rs`), so every UI action can be checked
   headlessly.
 - **View area of the checklist: 66.3% breadth** (55 shipped, 16 partial of 95; recounted from the checklist).
 

@@ -191,6 +191,8 @@ pub const COMMANDS: &[CommandSpec] = &[
     c("file.close_all", "Close all", FILE, Some(Shortcut::cmd_shift("W")), Document, "x"),
     c("file.revert", "Revert", FILE, None, Undo, "rotate-ccw"),
     c("print.dialog", "Print…", FILE, Some(Shortcut::cmd("P")), Printing, "printer"),
+    // A new imposed PDF. The open document is not modified. No shortcut: Print keeps Ctrl/Cmd+P.
+    c("file.impose", "Impose…", FILE, None, Printing, "layout-grid"),
     c("file.properties", "Document properties…", FILE, Some(Shortcut::cmd("D")), Document, "info"),
     c("file.word_count", "Word count…", FILE, None, Copying, "hash"),
     ct("edit.undo", "Undo", EDIT, Some(Shortcut::cmd("Z")), Undo, "undo-2"),

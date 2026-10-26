@@ -1,6 +1,9 @@
 //! Printing tools: list printers, and print (or save the print-ready PDF) with Acrobat's Print
 //! dialog options.
 
+use pdfcraft_engine::prepress::{
+    self, Binding as PrepressBinding, Bleed, Duplex, Edge, Flow, Layout as PrepressLayout, Orientation as SheetOrientation, Scale,
+};
 use pdfcraft_engine::print::{self, Binding, BookletSubset, Content, Layout, Orientation, PAPERS, PageOrder, SizeMode, Subset, spool};
 use serde_json::{Value, json};
 
@@ -219,6 +222,217 @@ impl Automation {
         }
         Ok(out)
     }
+
+    /// `doc_impose`: write a new imposed PDF. The source document is not modified.
+    pub(crate) fn doc_impose(&mut self, a: &Args) -> Result<Value> {
+        let doc = self.doc(a)?;
+        let (id, count, name) = (doc.id, doc.info.pages.len(), doc.name.clone());
+        let labels: Vec<String> = doc.info.pages.iter().map(|p| p.label.clone()).collect();
+        let pages = print::select_pages(count, a.opt_str("pages")?, &labels, Subset::All, false).map_err(|e| bad(e.to_string()))?;
+        let mut job = match a.opt_str("preset")? {
+            Some(name) => prepress::preset(name).ok_or_else(|| {
+                bad(format!("unknown preset {name:?}; choose one of {}", prepress::presets().iter().map(|(n, _)| *n).collect::<Vec<_>>().join(", ")))
+            })?,
+            None => prepress::Job::default(),
+        };
+        apply_sheet(a, &mut job)?;
+        apply_layout(a, &mut job)?;
+        apply_marks(a, &mut job)?;
+        let path = self.resolve(a.str("path")?, true)?;
+        let (bytes, sheets) = self.session.impose_pdf(id, &pages, &job, &name).map_err(failed)?;
+        write_atomic(&path, &bytes)?;
+        Ok(json!({
+            "sheets": sheets,
+            "pages": pages.len(),
+            "bytes": bytes.len(),
+            "path": path.to_string_lossy(),
+        }))
+    }
+}
+
+fn apply_sheet(a: &Args, job: &mut prepress::Job) -> Result<()> {
+    let orientation = match a.opt_str("orientation")? {
+        None => None,
+        Some("portrait") => Some(SheetOrientation::Portrait),
+        Some("landscape") => Some(SheetOrientation::Landscape),
+        Some(o) => return Err(bad(format!("unknown orientation {o:?}"))),
+    };
+    if let Some(name) = a.opt_str("sheet")? {
+        let found = prepress::SHEETS.iter().find(|(n, _, _)| n.eq_ignore_ascii_case(name));
+        let Some((_, short, long)) = found else {
+            return Err(bad(format!(
+                "unknown sheet {name:?}; choose one of {}, or pass width and height in points",
+                prepress::SHEETS.iter().map(|(n, _, _)| *n).collect::<Vec<_>>().join(", ")
+            )));
+        };
+        let which = orientation.unwrap_or(if job.sheet.width <= job.sheet.height { SheetOrientation::Portrait } else { SheetOrientation::Landscape });
+        let (w, h) = prepress::orient(*short, *long, which);
+        job.sheet.width = w;
+        job.sheet.height = h;
+    } else if let Some(which) = orientation {
+        let (w, h) = prepress::orient(job.sheet.width, job.sheet.height, which);
+        job.sheet.width = w;
+        job.sheet.height = h;
+    }
+    match (a.opt_num("width")?, a.opt_num("height")?) {
+        (None, None) => {}
+        (Some(w), Some(h)) => {
+            job.sheet.width = w;
+            job.sheet.height = h;
+        }
+        _ => return Err(bad("pass both width and height (points), or neither")),
+    }
+    if let Some(v) = a.opt_num("margin")? {
+        job.sheet.margin = v;
+    }
+    if let Some(v) = a.opt_num("gutter")? {
+        job.sheet.gutter_x = v;
+        job.sheet.gutter_y = v;
+    }
+    if let Some(v) = a.opt_num("gutter_x")? {
+        job.sheet.gutter_x = v;
+    }
+    if let Some(v) = a.opt_num("gutter_y")? {
+        job.sheet.gutter_y = v;
+    }
+    if let Some(v) = a.opt_num("gripper")? {
+        job.sheet.gripper = v;
+    }
+    if let Some(edge) = a.opt_str("gripper_edge")? {
+        job.sheet.gripper_edge = match edge {
+            "left" => Edge::Left,
+            "bottom" => Edge::Bottom,
+            "right" => Edge::Right,
+            "top" => Edge::Top,
+            other => return Err(bad(format!("unknown gripper_edge {other:?}"))),
+        };
+    }
+    Ok(())
+}
+
+fn apply_layout(a: &Args, job: &mut prepress::Job) -> Result<()> {
+    let kind = a.opt_str("layout")?;
+    match kind {
+        Some("grid") => {
+            let (cols, rows, flow, scale) = match job.layout {
+                PrepressLayout::Grid { cols, rows, flow, scale } => (cols, rows, flow, scale),
+                PrepressLayout::Booklet { .. } => (2, 1, Flow::Sequential, Scale::Auto),
+            };
+            job.layout = PrepressLayout::Grid { cols, rows, flow, scale };
+        }
+        Some("booklet") => {
+            let (binding, creep) = match job.layout {
+                PrepressLayout::Booklet { binding, creep } => (binding, creep),
+                PrepressLayout::Grid { .. } => (PrepressBinding::Left, 0.0),
+            };
+            job.layout = PrepressLayout::Booklet { binding, creep };
+        }
+        Some(other) => return Err(bad(format!("unknown layout {other:?}"))),
+        None => {}
+    }
+    if let Some(n) = a.opt_int("cols")? {
+        let cols = positive(n, "cols")?;
+        if let PrepressLayout::Grid { rows, flow, scale, .. } = job.layout {
+            job.layout = PrepressLayout::Grid { cols, rows, flow, scale };
+        }
+    }
+    if let Some(n) = a.opt_int("rows")? {
+        let rows = positive(n, "rows")?;
+        if let PrepressLayout::Grid { cols, flow, scale, .. } = job.layout {
+            job.layout = PrepressLayout::Grid { cols, rows, flow, scale };
+        }
+    }
+    if let Some(flow) = a.opt_str("flow")? {
+        let flow = match flow {
+            "sequential" => Flow::Sequential,
+            "repeat" => Flow::Repeat,
+            other => return Err(bad(format!("unknown flow {other:?}"))),
+        };
+        if let PrepressLayout::Grid { cols, rows, scale, .. } = job.layout {
+            job.layout = PrepressLayout::Grid { cols, rows, flow, scale };
+        }
+    }
+    if let Some(mode) = a.opt_str("scale")? {
+        let scale = match mode {
+            "auto" => Scale::Auto,
+            "actual" => Scale::Actual,
+            "percent" => Scale::Percent(a.opt_num("scale_percent")?.unwrap_or(100.0)),
+            other => return Err(bad(format!("unknown scale {other:?}"))),
+        };
+        if let PrepressLayout::Grid { cols, rows, flow, .. } = job.layout {
+            job.layout = PrepressLayout::Grid { cols, rows, flow, scale };
+        }
+    } else if let Some(p) = a.opt_num("scale_percent")?
+        && let PrepressLayout::Grid { cols, rows, flow, .. } = job.layout
+    {
+        job.layout = PrepressLayout::Grid { cols, rows, flow, scale: Scale::Percent(p) };
+    }
+    if let Some(v) = a.opt_bool("center")? {
+        job.center = v;
+    }
+    if let Some(v) = a.opt_bool("auto_rotate")? {
+        job.auto_rotate = v;
+    }
+    if let Some(binding) = a.opt_str("binding")? {
+        let binding = match binding {
+            "left" => PrepressBinding::Left,
+            "right" => PrepressBinding::Right,
+            other => return Err(bad(format!("unknown binding {other:?}"))),
+        };
+        if let PrepressLayout::Booklet { creep, .. } = job.layout {
+            job.layout = PrepressLayout::Booklet { binding, creep };
+        }
+    }
+    if let Some(creep) = a.opt_num("creep")?
+        && let PrepressLayout::Booklet { binding, .. } = job.layout
+    {
+        job.layout = PrepressLayout::Booklet { binding, creep };
+    }
+    if let Some(duplex) = a.opt_str("duplex")? {
+        job.duplex = match duplex {
+            "simplex" => Duplex::Simplex,
+            "sheetwise" => Duplex::Sheetwise,
+            "work-and-turn" => Duplex::WorkAndTurn,
+            "work-and-tumble" => Duplex::WorkAndTumble,
+            other => return Err(bad(format!("unknown duplex {other:?}"))),
+        };
+    }
+    match a.opt_str("bleed")? {
+        None => {}
+        Some("from-box") => job.bleed = Bleed::FromBox,
+        Some("amount") => job.bleed = Bleed::Amount(a.opt_num("bleed_amount")?.unwrap_or(0.0)),
+        Some(other) => return Err(bad(format!("unknown bleed {other:?}"))),
+    }
+    if let Some(amount) = a.opt_num("bleed_amount")? {
+        job.bleed = Bleed::Amount(amount);
+    }
+    Ok(())
+}
+
+fn apply_marks(a: &Args, job: &mut prepress::Job) -> Result<()> {
+    if let Some(v) = a.opt_bool("crop_marks")? {
+        job.marks.crop = v;
+    }
+    if let Some(v) = a.opt_bool("bleed_marks")? {
+        job.marks.bleed = v;
+    }
+    if let Some(v) = a.opt_bool("registration")? {
+        job.marks.registration = v;
+    }
+    if let Some(v) = a.opt_bool("slug")? {
+        job.marks.slug = v;
+    }
+    if let Some(v) = a.opt_num("mark_offset")? {
+        job.marks.offset = v;
+    }
+    if let Some(v) = a.opt_num("mark_length")? {
+        job.marks.length = v;
+    }
+    Ok(())
+}
+
+fn positive(n: i64, name: &str) -> Result<u32> {
+    if (1..=64).contains(&n) { Ok(n as u32) } else { Err(bad(format!("{name} must be from 1 to 64"))) }
 }
 
 #[cfg(test)]
@@ -275,5 +489,60 @@ mod tests {
         assert!(matches!(paper_named(Some("Quarto")), Err(ToolError::InvalidArgs(m)) if m.contains("US Letter")));
         assert_eq!(spool_job(&Args(&json!({})), "default", String::new(), None, 0).ok().map(|j| j.printer), Some(None));
         assert!(spool_job(&Args(&json!({ "options": { "InputSlot": 3 } })), "Office", String::new(), None, 0).is_err());
+    }
+
+    /// The imposed file is new. The source document's bytes and dirty flag stay as they were.
+    #[test]
+    fn impose_writes_a_new_file_and_leaves_the_source() {
+        let dir = std::env::temp_dir().join(format!("pdfcraft-impose-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut a = Automation::new().with_root(&dir).unwrap();
+        let cards = a.session.create_blank(144.0, 252.0, 1).unwrap();
+        let card_id = a.session.open("cards.pdf", None, cards, None).unwrap();
+        let before = a.session.get(card_id).unwrap().bytes.clone();
+        let card = a
+            .call(
+                "doc_impose",
+                &json!({
+                    "doc": card_id.0,
+                    "path": "cards-imposed.pdf",
+                    "preset": "Business cards 10-up 12x18",
+                }),
+            )
+            .unwrap();
+        let card = match card.first() {
+            Some(crate::Content::Json(v)) => v,
+            other => panic!("unexpected {other:?}"),
+        };
+        assert_eq!(card["sheets"], 1);
+        assert_eq!(card["pages"], 1);
+        let src = a.session.get(card_id).unwrap();
+        assert!(!src.dirty);
+        assert!(std::sync::Arc::ptr_eq(&src.bytes, &before));
+        let out = std::fs::read(dir.join("cards-imposed.pdf")).unwrap();
+        let opened = a.session.open("cards-imposed.pdf", None, std::sync::Arc::new(out), None).unwrap();
+        let page = &a.session.get(opened).unwrap().info.pages[0];
+        assert!((page.width - 18.0 * 72.0).abs() < 0.5 && (page.height - 12.0 * 72.0).abs() < 0.5, "{}×{}", page.width, page.height);
+
+        let book = a.session.create_blank(612.0, 792.0, 8).unwrap();
+        let book_id = a.session.open("book.pdf", None, book, None).unwrap();
+        let signature = a
+            .call(
+                "doc_impose",
+                &json!({
+                    "doc": book_id.0,
+                    "path": "booklet.pdf",
+                    "preset": "Saddle-stitch booklet",
+                }),
+            )
+            .unwrap();
+        let signature = match signature.first() {
+            Some(crate::Content::Json(v)) => v,
+            other => panic!("unexpected {other:?}"),
+        };
+        assert_eq!(signature["sheets"], 4, "eight pages pad to two sheets, front and back");
+        assert!(!a.session.get(book_id).unwrap().dirty);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

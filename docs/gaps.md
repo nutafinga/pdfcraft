@@ -1,5 +1,6 @@
 # Where PdfCraft falls short of Acrobat Pro
 
+> **Last reviewed:** 2026-10-26 · **Last updated:** 2026-10-26 · **Change:** minor (gap 18: imposition with bleed and printer marks writes a new PDF; output preview, separations and the ink manager remain. Estimates unchanged)
 > **Last reviewed:** 2026-10-26 · **Last updated:** 2026-10-26 · **Change:** minor (gap 16: page-view rulers and session guides; grid, snap and a coordinates window remain. Estimates unchanged)
 > **Last reviewed:** 2026-10-25 · **Last updated:** 2026-10-25 · **Change:** minor (gaps 5 and 14 current state: native release Hans face via LXGW WenKai Lite; Arabic logical catalog, explicit RTL direction and mirrored stock chrome, with native/browser/IME workflows unqualified; no readiness re-estimate)
 
@@ -349,10 +350,13 @@ update the numbers.
 
 ### 18. Print production tools absent
 
+- **Done:** File ▸ Impose (`doc_impose`) writes a new PDF: press-sheet size, n-up and step-and-repeat,
+  saddle-stitch with optional creep, work-and-turn and work-and-tumble, bleed, and crop, bleed and
+  registration marks. The source file is not modified. Comments and form fields are not drawn on the sheet.
 - **Missing:** Output Preview, separations, total area coverage, overprint preview, ink manager,
-  colour conversion, printer marks, fix hairlines, flattener preview, colour management settings;
-  print as image; PostScript output.
-- **Evidence:** 18 print-production features planned (L area).
+  colour conversion, colour bars, fold marks, fix hairlines, flattener preview, colour management settings;
+  print as image; PostScript output. The Print dialog still has no marks or bleed.
+- **Evidence:** `print.imposition` shipped; `print.print-marks-bleeds` partial (L area).
 - **Estimate:** 25–45 h (part of the L area's 30–55). **Doc:** [target-app-parity.md](target-app-parity.md).
 
 ### 19. Preferences mostly missing
