@@ -263,6 +263,7 @@ impl PdfCraftApp {
                     self.set_active_page_gaps(!view.show_page_gaps);
                 }
             }
+            "view.rulers" => self.show_rulers = !self.show_rulers,
             "view.layout.cover" => {
                 if let Some(i) = active {
                     let v = &mut self.views[i];

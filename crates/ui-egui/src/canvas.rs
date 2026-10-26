@@ -448,6 +448,9 @@ pub struct DocView {
     /// Whether the base layout scrolls continuously (independent of `layout`, as in Acrobat).
     pub continuous: bool,
     pub show_page_gaps: bool,
+    /// Guides dragged out of the rulers. They belong to a page, in displayed points from that
+    /// page's ruler origin, and are not written into the PDF.
+    pub(crate) guides: Vec<crate::rulers::Guide>,
     /// View rotation in degrees clockwise (0, 90, 180, 270); display only, never saved.
     pub rotation: u16,
     pub current: usize,
@@ -828,6 +831,7 @@ impl DocView {
             layout: defaults.layout,
             continuous: defaults.continuous,
             show_page_gaps: defaults.show_page_gaps,
+            guides: Vec::new(),
             rotation: 0,
             current: 0,
             organize: false,
@@ -960,6 +964,9 @@ impl DocView {
         let last = self.page_count.saturating_sub(1);
         self.current = self.current.min(last);
         self.selected.retain(|p| *p <= last);
+        // A guide on a page that no longer exists goes with the page. An empty document has no
+        // page 0 to keep (`last` saturates to 0).
+        self.guides.retain(|g| self.page_count > 0 && g.page < self.page_count && g.offset_pt.is_finite());
         // Text being typed on a page that no longer exists goes with the page.
         if self.content.draft.as_ref().is_some_and(|d| d.page > last || self.page_count == 0) {
             self.content.draft = None;
@@ -990,6 +997,7 @@ impl DocView {
         fresh.layout = self.layout;
         fresh.continuous = self.continuous;
         fresh.show_page_gaps = self.show_page_gaps;
+        fresh.guides = std::mem::take(&mut self.guides);
         fresh.rotation = self.rotation;
         fresh.current = self.current;
         fresh.organize = self.organize;
@@ -2842,8 +2850,9 @@ fn page_scroll<R>(
 
 /// Draws the document tab at `index`: its notice bars, then its pages (or the Organize grid) in a
 /// scroll area with this frame's zoom, scrolling, tool input, overlays and render requests.
+/// When rulers are on, and the view is not full screen or Organize, they take a band along the
+/// top and left and the pages lay out in the inset.
 pub fn document_area(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui) {
-    let t = Tokens::get(ui.ctx());
     // Keyboard scrolling applies to this frame's page view only, never later.
     let key_scroll = std::mem::take(&mut app.views[index].key_scroll);
     if key_scroll != 0.0 {
@@ -2870,6 +2879,52 @@ pub fn document_area(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui) {
         }
         return;
     }
+    mount_page_view(app, index, ui, key_scroll);
+}
+
+fn mount_page_view(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui, key_scroll: f32) {
+    // Full screen and Organize Pages keep the page filling the view.
+    let show_rulers = app.show_rulers && app.views.get(index).is_some_and(|v| !v.presenting() && !v.organize);
+    if show_rulers {
+        let full = ui.available_rect_before_wrap();
+        let bands = crate::rulers::Bands::split(full);
+        let mut page_ui = ui.new_child(egui::UiBuilder::new().max_rect(bands.page).id_salt("ruler-page"));
+        page_ui.set_clip_rect(bands.page);
+        document_viewport(app, index, &mut page_ui, key_scroll);
+        let pages = ruler_pages(app, index);
+        let (current, doc_id) = app.views.get(index).map(|v| (v.current, v.id.0)).unwrap_or((0, 0));
+        let unit = app.ruler_unit;
+        if let Some(view) = app.views.get_mut(index) {
+            crate::rulers::show(ui, &bands, &pages, current, unit, doc_id, &mut view.guides);
+        }
+        // The child does not claim this space, and a hit target here would cover the pages.
+        if full.min.x.is_finite() && full.min.y.is_finite() && full.max.x.is_finite() && full.max.y.is_finite() {
+            ui.advance_cursor_after_rect(full);
+        }
+    } else {
+        document_viewport(app, index, ui, key_scroll);
+    }
+}
+
+fn ruler_pages(app: &PdfCraftApp, index: usize) -> Vec<crate::rulers::RulerPage> {
+    let Some(view) = app.views.get(index) else { return Vec::new() };
+    let Some(doc) = app.session.get(view.id) else { return Vec::new() };
+    let boxes = doc.page_boxes();
+    let mut out = Vec::new();
+    for (page, xf) in &view.screen_xforms {
+        let Some(info) = doc.info.pages.get(*page) else { continue };
+        out.push(crate::rulers::RulerPage {
+            index: *page,
+            frame: crate::rulers::PageFrame { rect: xf.rect, rot: xf.rot, pw: xf.pw, ph: xf.ph },
+            info: info.clone(),
+            boxes: boxes.get(*page).copied(),
+        });
+    }
+    out
+}
+
+fn document_viewport(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui, key_scroll: f32) {
+    let t = Tokens::get(ui.ctx());
     let Some(doc) = app.session.get(app.views[index].id) else { return };
     let info = &doc.info;
     let paper = app.session.reading_colors(app.views[index].id).and_then(|c| c.params).map_or(Color32::WHITE, |p| {
@@ -6249,6 +6304,52 @@ trailer << /Root 1 0 R >>
             ..Default::default()
         };
         DocView::new(DocId(1), &info, ViewDefaults { layout, continuous, ..Default::default() })
+    }
+
+    fn info_pages(n: usize) -> pdfcraft_render::DocInfo {
+        pdfcraft_render::DocInfo {
+            pages: (0..n)
+                .map(|_| pdfcraft_render::PageInfo { width: 300.0, height: 400.0, label: String::new(), crop: [0.0, 0.0, 300.0, 400.0], rotation: 0 })
+                .collect(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn ruler_frame_matches_the_page_transform() {
+        for rot in [0u16, 90, 180, 270] {
+            let (pw, ph) = (200.0f32, 100.0);
+            let size = if rot % 180 == 90 { vec2(120.0, 240.0) } else { vec2(240.0, 120.0) };
+            let rect = Rect::from_min_size(pos2(10.0, 20.0), size);
+            let xf = PageXform { rect, rot, pw, ph };
+            let frame = crate::rulers::PageFrame { rect, rot, pw, ph };
+            assert!((xf.zoom() - frame.screen_per_point()).abs() < 1.0e-4, "{rot}");
+            for (u, v) in [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (0.3, 0.7), (1.0, 1.0)] {
+                let screen = xf.norm_to_screen(u, v);
+                let mapped = frame.view_to_screen(u * pw, v * ph);
+                assert!((screen.x - mapped.x).abs() < 1.0e-3 && (screen.y - mapped.y).abs() < 1.0e-3, "{rot} {screen:?} {mapped:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn guides_stay_with_their_page() {
+        let mut view = view(2, PageLayout::Single, true);
+        view.guides.push(crate::rulers::Guide { page: 0, vertical: true, offset_pt: 10.0 });
+        view.guides.push(crate::rulers::Guide { page: 1, vertical: false, offset_pt: 20.0 });
+        view.guides.push(crate::rulers::Guide { page: 0, vertical: true, offset_pt: f32::NAN });
+        view.document_changed(&info_pages(1));
+        assert_eq!(view.guides.len(), 1);
+        assert_eq!(view.guides[0].page, 0);
+        assert!((view.guides[0].offset_pt - 10.0).abs() < 0.01);
+        view.document_changed(&info_pages(0));
+        assert!(view.guides.is_empty(), "an empty document has no page to keep a guide on");
+        view.guides.push(crate::rulers::Guide { page: 0, vertical: false, offset_pt: 8.0 });
+        view.zoom = 2.0;
+        view.document_replaced(&info_pages(1));
+        assert_eq!(view.zoom, 2.0);
+        assert_eq!(view.guides.len(), 1);
+        assert!((view.guides[0].offset_pt - 8.0).abs() < 0.01);
     }
 
     fn history_search_view() -> DocView {

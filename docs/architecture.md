@@ -83,7 +83,7 @@ The PDF object graph *is* the model (`crates/engine/README.md` §The editing mod
 
 Every user-facing feature is reachable headlessly (`AGENTS.md` §3):
 
-- the **command registry** (`crates/engine/src/commands.rs`, 184 commands) generates menus,
+- the **command registry** (`crates/engine/src/commands.rs`, 206 commands) generates menus,
   shortcuts and the command palette;
 - the **automation tool table** (`crates/automation`, 141 tools) is shared by `pdfcraft-cli run`
   and the opt-in **MCP server** (stdio only; `pdfcraft-cli mcp`), confined to `--root`;

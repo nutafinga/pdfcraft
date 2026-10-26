@@ -447,6 +447,20 @@ pub(crate) fn preferences_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tok
         }
     });
     ui.label(egui::RichText::new(tl!("For page sizes and margins.")).small().color(t.text_muted));
+    ui.add(widgets::checkbox(&mut app.show_rulers, tl!("Show rulers")));
+    ui.horizontal(|ui| {
+        ui.label(tl!("Ruler units"));
+        for unit in crate::rulers::RulerUnit::ALL {
+            widgets::radio_value(ui, &mut app.ruler_unit, unit, tl!(unit.long_name()));
+        }
+    });
+    ui.label(
+        egui::RichText::new(tl!(
+            "Rulers measure from the current page. Drag from a ruler to place a guide; drag a guide back onto a ruler to remove it."
+        ))
+        .small()
+        .color(t.text_muted),
+    );
     // The web build has no file paths to reopen.
     #[cfg(not(target_arch = "wasm32"))]
     ui.add(widgets::checkbox(&mut app.reopen_last_session, tl!("Reopen the files that were open when PdfCraft last closed")));

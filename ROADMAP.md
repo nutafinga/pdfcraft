@@ -2,6 +2,7 @@
 
 **Stage: alpha** · next: beta, ~25% (ready for real work 50% → 75%) and ~400–700 h away
 
+> **Last reviewed:** 2026-10-26 | **Last updated:** 2026-10-26 | **Change:** minor (M12: page-view rulers with inches, millimetres, points and picas, a cursor mark, and session guides; estimates unchanged)
 > **Last reviewed:** 2026-10-25 | **Last updated:** 2026-10-25 | **Change:** minor (M14 localization current state: Arabic logical catalog, explicit RTL label direction and mirrored stock chrome; native/browser RTL workflows unqualified. Native release Hans face via LXGW WenKai Lite; estimates unchanged)
 > **Last reviewed:** 2026-10-23 · **Last updated:** 2026-10-23 · **Change:** minor (M7, #2636 partial: pasting added text boxes and images in the engine and through `content_copy`; estimates unchanged)
 > **Last reviewed:** 2026-10-23 · **Last updated:** 2026-10-23 · **Change:** minor (M11: image optimization accounts for page-local UserUnit; estimates unchanged)
@@ -217,6 +218,7 @@ Ranked; detail and the full milestone table in [docs/roadmap.md](docs/roadmap.md
 - **2026-10-23 (M10, print resources):** Vector printing preserves original page artwork when existing XObjects use annotation resource names.
   The regression checks two distinct appearances, inherited resources, print/reopen pixels and unchanged source data.
   Estimates unchanged.
+- **2026-10-26 (M12, page rulers):** The page view can show horizontal and vertical rulers (View menu, Preferences, Ctrl+R or Cmd+R). They stay off until turned on, then the choice and the unit (inches, millimetres, points or picas) are remembered. Zero is the current page's trim box. Dragging from a ruler places a guide for the session; it is not saved into the PDF. Estimates unchanged.
 - **2026-10-21 (M3, window resize and move on Wayland):** With PdfCraft's own title bar on GNOME/Wayland, a second resize by a window edge, or a second move by the empty tab strip, works straight after the first; it waited for a click inside the window, because the compositor keeps the button's release from egui. A unit test covers the release given back; checked by hand in a test build. Estimates unchanged.
 - **2026-10-22 (M4, #3916 partial):** Document edits and Undo/Redo cancel an Organize page drag. Pointer-release regressions check exact page order and save/reopen.
 - **2026-10-22 (M10, #3752 paper):** CUPS jobs ask for the chosen paper in every size. The 13 sizes the Print dialog sent no paper for (A6, A0–A2, ARCH, ANSI C–E) use PWG 5101.1 names, checked against a synthetic PPD with `cupsfilter`, and `doc_print` to a printer sends the paper too. The macOS tray half (Auto Select instead of the PPD's default tray) is a craft-print change that needs a pin bump here. Estimates unchanged.

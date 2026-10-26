@@ -205,6 +205,9 @@ pub const COMMANDS: &[CommandSpec] = &[
     c("view.layout.two_up", "Two-page view", None, None, Document, "columns-2"),
     c("view.continuous", "Continuous scrolling", None, None, Document, "arrow-up-down"),
     c("view.page_gaps", "Show gaps between pages", None, None, Document, "arrow-up-down"),
+    // Drawn beside the page display controls, so `menu = None` keeps the generated View menu
+    // from listing it a second time. The palette and Ctrl/Cmd+R still run it.
+    c("view.rulers", "Rulers", None, Some(Shortcut::cmd("R")), Document, "ruler"),
     c("view.layout.cover", "Show cover page in two-page view", None, None, TwoPageView, "bookmark"),
     // Acrobat's view modes, a page display and a zoom at once (the rail's Page display menu).
     c("view.fit_width_scrolling", "Fit to width scrolling", None, None, Document, "arrow-left-right"),

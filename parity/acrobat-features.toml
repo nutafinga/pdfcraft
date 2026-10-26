@@ -1607,11 +1607,11 @@ title = "Rulers"
 area = "B"
 tier = "P2"
 milestone = "M12"
-status = "planned"
-commands = []
+status = "shipped"
+commands = ["view.rulers"]
 tools = []
-evidence = []
-notes = ""
+evidence = ["crates/ui-egui/src/rulers.rs::inch_ticks_match_zoom_and_origin", "crates/ui-egui/src/rulers.rs::units_share_an_inch_on_screen", "crates/ui-egui/src/rulers.rs::trim_origin_follows_the_displayed_box", "crates/ui-egui/src/rulers.rs::ruler_preferences_round_trip", "crates/ui-egui/src/canvas.rs::ruler_frame_matches_the_page_transform"]
+notes = "Horizontal and vertical rulers in the page view (View menu, Preferences, and Ctrl+R or Cmd+R). Off until turned on, then remembered. Units are inches (default), millimetres, points and picas, separate from the document unit. Ticks follow zoom and scroll; zero is the displayed top-left of the current page's trim box, then its media box, then the rendered page. A hairline and readout track the pointer on both rulers. Missing: a grid, snap, and dragging the zero point."
 
 [[feature]]
 id = "view.grid"
@@ -1631,11 +1631,11 @@ title = "Guides"
 area = "B"
 tier = "P2"
 milestone = "M12"
-status = "planned"
+status = "partial"
 commands = []
 tools = []
-evidence = []
-notes = ""
+evidence = ["crates/ui-egui/src/rulers.rs::guide_drag_places_moves_and_deletes", "crates/ui-egui/src/canvas.rs::guides_stay_with_their_page"]
+notes = "Drag from a ruler to place a guide on the current page; drag a guide to move it; drag it back onto a ruler to remove it. Guides are displayed points from that page's ruler origin and move with the page. At most 64. They are session view state only: not written into the PDF, not restored next launch, and there is no snap, lock or colour preference."
 
 [[feature]]
 id = "view.line-weights"
@@ -1655,11 +1655,11 @@ title = "Cursor coordinates"
 area = "B"
 tier = "P2"
 milestone = "M12"
-status = "planned"
+status = "partial"
 commands = []
 tools = []
-evidence = []
-notes = ""
+evidence = ["crates/ui-egui/src/rulers.rs::readout_uses_the_ruler_unit"]
+notes = "While the pointer is over the page and the rulers are showing, each ruler draws a hairline and the position in the ruler unit. Missing: a floating cursor-coordinates window, and a readout when the rulers are hidden."
 
 [[feature]]
 id = "view.theme-light-dark"
@@ -10081,11 +10081,11 @@ title = "Preferences: units and guides"
 area = "N"
 tier = "P2"
 milestone = "M14"
-status = "planned"
+status = "partial"
 commands = []
 tools = []
-evidence = []
-notes = ""
+evidence = ["crates/ui-egui/src/rulers.rs::ruler_preferences_round_trip"]
+notes = "Preferences sets whether rulers are shown and their unit (inches, millimetres, points, picas), separately from the document unit used for page sizes and margins. Guide colour, snap and persistence are not preferences; guides last only for the session."
 
 [[feature]]
 id = "misc.prefs-content-editing"
