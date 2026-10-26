@@ -67,7 +67,7 @@ never been measured side by side with Acrobat, and the first public releases (0.
   counts half). The checklist itself was written from Acrobat's public documentation, not diffed
   against a menu dump, so it can miss features; that risk is one of the gaps.
 - **Ready for real work by judgement, from evidence:** the code (152k lines of Rust in `crates/`,
-  `apps/` and `xtask`, 1,765 tests, 206 registered commands, 141 automation tools); the vendored
+  `apps/` and `xtask`, 1,765 tests, 207 registered commands, 142 automation tools); the vendored
   renderer's patch list (`vendor/README.md`); user reports on GitHub (245 open, 107 closed issues on
   2026-10-10); release packaging (`.github/workflows/release.yml`); and knowledge of Acrobat Pro's
   feature set from Adobe's public documentation.
@@ -210,9 +210,9 @@ full parity in that area.
 | I Scan and OCR | 26 | 5 | 2 | 23.1% | 15% | 40–75 | Searchable image (ocrs, Latin script without accents) on pages, ranges and many files. Missing: every other language (#744 Dutch; accents, CJK, Cyrillic, Arabic), editable-text output, deskew, rotation, despeckle, camera images beyond straightening (found or placed corners): orientation, clean-up, MRC compression, scanners |
 | J Create and export | 34 | 12 | 3 | 39.7% | 25% | 55–100 | Create from images, multipage TIFF, text, clipboard, blank, many files at once; export PNG/JPEG/TIFF, text, RTF; Word and HTML partial. Missing: Office/HTML/web/PostScript to PDF, Excel and PowerPoint export, Word layout fidelity (#773), SVG/XML/EPS/PS/JPEG 2000 export, accessible text |
 | K Optimize and standards | 58 | 15 | 10 | 34.5% | 20% | 65–115 | Reduce File Size and the Optimizer (images, discards, clean-up, space audit); PDF/A-2b/3b verify and convert (partial). Missing: Preflight (profiles, fixups, reports), PDF/A-1/4 and a/u levels, PDF/X, PDF/UA, PDF/E, PDF/VT, transparency flattening, font unembedding, monochrome JBIG2/CCITT |
-| L Print | 39 | 15 | 1 | 39.7% | 35% | 30–55 | Acrobat's sizing, n-up, booklet, poster, comments & forms, preview, print-ready PDF, CUPS on macOS/Linux, the Windows spooler (#756) and the browser's print dialog on the web. Missing: print as image, PostScript, all print-production tools (output preview, separations, ink manager, printer marks, colour conversion) |
+| L Print | 40 | 18 | 1 | 46.2% | 35% | 30–55 | Recounted with `cargo xtask parity` (the all-areas total above was not re-summed). Acrobat's sizing, n-up, booklet, poster, comments & forms, preview, print-ready PDF, CUPS on macOS/Linux, the Windows spooler (#756) and the browser's print dialog on the web. File ▸ Impose writes a new press sheet (step-and-repeat, saddle-stitch, work-and-turn/tumble, bleed, crop and registration marks). Missing: print as image, PostScript, output preview, separations, ink manager, colour conversion. |
 | M Accessibility | 61 | 38 | 1 | 63.1% | 30% | 40–70 | Accessibility Checker (all 32 rules, report, fixes), alternate text, title and language. Missing: autotag, Tags/Order/Content panels, Reading Order tool, artifact marking, table editor, Read Out Loud, full keyboard operation of the app, screen-reader audit |
-| N Automation, preferences, misc | 75 | 20 | 5 | 30.0% | 35% | 25–45 | CLI, MCP, UI control channel, 141 automation tools, Action Wizard (run, create), compare (text, visual, report, side by side, Text/Visual filter). Missing: most Preferences pages, Acrobat's finer compare filters, Action Wizard management, custom commands, AI providers, rich media/3D, hosted web app |
+| N Automation, preferences, misc | 75 | 20 | 5 | 30.0% | 35% | 25–45 | CLI, MCP, UI control channel, 142 automation tools, Action Wizard (run, create), compare (text, visual, report, side by side, Text/Visual filter). Missing: most Preferences pages, Acrobat's finer compare filters, Action Wizard management, custom commands, AI providers, rich media/3D, hosted web app |
 | **All** | **808** | **423** | **74** | **56.9%** | **≈ 49%** | **610–1,100** | Plus 175–325 h of cross-cutting work (dimension table) |
 
 Shipped features rest on thin evidence: 141 of 423 cite exactly one test, and only a handful cite

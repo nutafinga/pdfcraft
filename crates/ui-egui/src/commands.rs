@@ -506,6 +506,7 @@ impl PdfCraftApp {
             }
             "protect.remove_hidden" => self.open_remove_hidden(),
             "print.dialog" => self.open_print(),
+            "file.impose" => self.open_impose(),
             "redact.sanitize" => self.dialog = Some(Dialog::Sanitize),
             "redact.clear" => {
                 self.apply_edit(Edit::ClearRedactions);

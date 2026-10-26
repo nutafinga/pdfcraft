@@ -8436,16 +8436,28 @@ evidence = []
 notes = ""
 
 [[feature]]
+id = "print.imposition"
+title = "Impose pages on a press sheet"
+area = "L"
+tier = "P1"
+milestone = "M11"
+status = "shipped"
+commands = ["file.impose"]
+tools = ["doc_impose"]
+evidence = ["crates/prepress/src/lib.rs::booklet_orders_an_eight_page_signature", "crates/prepress/src/lib.rs::step_and_repeat_fills_a_sheet_with_one_page", "crates/prepress/src/lib.rs::work_and_turn_mirrors_the_back_columns", "crates/prepress/src/lib.rs::work_and_tumble_mirrors_the_back_rows", "crates/prepress/src/lib.rs::crop_marks_sit_outside_the_bleed", "crates/prepress/src/lib.rs::impose_writes_a_new_pdf_and_leaves_the_source", "crates/automation/src/printing.rs::impose_writes_a_new_file_and_leaves_the_source", "crates/ui-egui/src/impose_ui.rs::a_saved_preset_round_trips"]
+notes = "A new PDF: sheet presets (Letter, 11x17, 12x18, 13x19, SRA3, custom), margins and gripper, n-up and step-and-repeat, saddle-stitch with blank padding to a multiple of 4 and optional creep, work-and-turn and work-and-tumble, bleed from the bleed box or a margin, crop/bleed/registration marks and a slug, a live preview, and saved presets. The source document is not modified. Missing: colour bars, fold marks, collating marks, multi-signature sections, page-specific scaling, and compositing comments and form fields onto the sheet (page content and resources only)."
+
+[[feature]]
 id = "print.print-marks-bleeds"
 title = "Marks and bleeds when printing"
 area = "L"
 tier = "P2"
 milestone = "M11"
-status = "planned"
-commands = []
-tools = []
-evidence = []
-notes = ""
+status = "partial"
+commands = ["file.impose"]
+tools = ["doc_impose"]
+evidence = ["crates/prepress/src/lib.rs::crop_marks_sit_outside_the_bleed", "crates/prepress/src/lib.rs::the_gripper_insets_one_edge"]
+notes = "Crop marks, bleed marks, registration marks, a slug, and bleed (from the bleed box or a set amount) are in File ▸ Impose, which writes a new PDF. The Print dialog still has none of them."
 
 [[feature]]
 id = "print.trap-presets"

@@ -68,8 +68,8 @@ impl RulerUnit {
         }
     }
 
-    /// The corner of the two rulers.
-    fn short(self) -> &'static str {
+    /// The corner of the two rulers, and the imposition dialog's unit label.
+    pub(crate) fn short(self) -> &'static str {
         match self {
             Self::Inches => "in",
             Self::Millimetres => "mm",

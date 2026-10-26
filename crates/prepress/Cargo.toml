@@ -1,0 +1,17 @@
+[package]
+name = "pdfcraft-prepress"
+description = "Prepress imposition: n-up, step-and-repeat, saddle-stitch booklets, bleed and printer marks, as a new PDF"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+pdfcraft-cos = { workspace = true }
+pdfcraft-content = { workspace = true }
+pdfcraft-model = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

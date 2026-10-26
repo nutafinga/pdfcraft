@@ -2,6 +2,7 @@
 
 **Stage: alpha** · next: beta, ~25% (ready for real work 50% → 75%) and ~400–700 h away
 
+> **Last reviewed:** 2026-10-26 | **Last updated:** 2026-10-26 | **Change:** minor (M11: File ▸ Impose writes a new press-sheet PDF — n-up, step-and-repeat, saddle-stitch, work-and-turn/tumble, bleed and marks; estimates unchanged)
 > **Last reviewed:** 2026-10-26 | **Last updated:** 2026-10-26 | **Change:** minor (M12: page-view rulers with inches, millimetres, points and picas, a cursor mark, and session guides; estimates unchanged)
 > **Last reviewed:** 2026-10-25 | **Last updated:** 2026-10-25 | **Change:** minor (M14 localization current state: Arabic logical catalog, explicit RTL label direction and mirrored stock chrome; native/browser RTL workflows unqualified. Native release Hans face via LXGW WenKai Lite; estimates unchanged)
 > **Last reviewed:** 2026-10-23 · **Last updated:** 2026-10-23 · **Change:** minor (M7, #2636 partial: pasting added text boxes and images in the engine and through `content_copy`; estimates unchanged)
@@ -200,6 +201,7 @@ Ranked; detail and the full milestone table in [docs/roadmap.md](docs/roadmap.md
 
 ## Progress log
 
+- **2026-10-26 (M11, imposition):** File ▸ Impose writes a new PDF for a press sheet (Letter, 11×17, 12×18, 13×19, SRA3 or a custom size): n-up and step-and-repeat, a saddle-stitch booklet with optional creep, work-and-turn and work-and-tumble, bleed, and crop, bleed and registration marks. The open document is not changed. `doc_impose` does the same from the command line. Estimates unchanged.
 - **2026-10-24 (M10, #4158 partial):** Word, HTML, RTF and PowerPoint export keep a block that continues another on its line (an italic case name, a link, a superscript) as a run in its own style inside that paragraph, with the source's word space, instead of a paragraph of its own. Style changes that wrap onto the next line still split paragraphs (the reading blocks keep style boundaries). Estimates unchanged.
 - **2026-10-24 (M3, window move on Wayland, #3970 follow-up):** After a move or resize by PdfCraft's own title bar or edges, the button release given back to egui goes before the pointer leaving the window, so hover no longer sticks at the old place until the pointer moves. Found by CodeRabbit in review of #3970; a unit test covers it. Estimates unchanged.
 - **2026-10-24 (M14, #4253):** The annotation quick bar remembers Keep tool selected across restarts, including unpinning. Old and malformed settings keep safe defaults; the opt-in UI control channel reads and changes the same preference. Estimates unchanged.
@@ -684,6 +686,7 @@ Newest first: the date, what moved, and the new overall estimate.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-26 | minor | M11: File ▸ Impose writes a new press-sheet PDF (n-up, step-and-repeat, saddle-stitch, work-and-turn/tumble, bleed and printer marks). The source document is not modified. Estimates unchanged. |
 | 2026-10-23 | minor | M8, #3205 follow-up: phone-pattern redaction includes the +39 country code on labelled Italian geographic numbers with a slash; dates, protocol identifiers and whole-run guards remain. Estimates unchanged. |
 | 2026-10-23 | minor | M11: image downsampling measures physical resolution after page-local UserUnit scaling, including shared nested forms; synthetic measurement and optimization regressions. Estimates unchanged. |
 | 2026-10-23 | minor | M10: Word table cells use the grid columns they span, including cells after a merged cell; synthetic export regression and CLI reproduction. Estimates unchanged. |
